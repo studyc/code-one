@@ -1,0 +1,33 @@
+Enter file contents here#include <iostream>
+#include <thread>
+#include <condition_variable>
+#include <mutex>
+using namespace std;
+mutex mtx;
+condition_variable cv;
+bool ready = false;
+void print_id(int id)
+{
+	unique_lock<mutex> lck(mtx);
+	while (!ready)
+		cv.wait(lck); //
+	cout << "thread" << id << endl;
+}
+void go()
+{
+	unique_lock<mutex> lck(mtx);
+	notify_all_at_thread_exit(cv, move(lck)); //
+	ready = true;
+	cout << "thread go..." << endl;	
+}
+int main()
+{
+	thread th[10];
+	for (int i = 0; i < 10;i++)
+		th[i] = thread(print_id, i);
+	cout << "10 threads ready to race..." << endl;
+	thread(go).detach();//
+	for (auto&t : th)t.join();
+
+	return 0;
+}
